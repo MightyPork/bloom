@@ -24,7 +24,7 @@ int main()
   uint32_t width = gwa.width;
   uint32_t height = gwa.height;
 
-  // The first image, to measure the screen
+  // The first image, to measure the screen and allocate the buffer
   XImage *image = XGetImage(display, root, 0, 0, width, height, AllPlanes, ZPixmap);   
   uint8_t array[width * height * 3];
   const uint32_t red_mask = image->red_mask;
@@ -37,8 +37,7 @@ int main()
 
   union Color {
     uint32_t hex;
-    RGB rgb;
-    
+    RGB rgb;    
     struct {
       uint8_t b;
       uint8_t g;
@@ -46,25 +45,28 @@ int main()
     };
   };
   
+  // sampling steps
   const uint32_t xnum = 32;
   const uint32_t ynum = 24;
   const uint32_t xstep = width/xnum;
   const uint32_t ystep = height/ynum;
   
+  // ideally we should downscale it using nearest-neighbour
+  
   union Color *C;
-  while (XGetSubImage(display, root, 0, 0, width, height, AllPlanes, ZPixmap, image, 0, 0)) {
-    //color.hex = XGetPixel(image, 40,40);
+  while (XGetSubImage(display, root, 0, 0, width, height, AllPlanes, ZPixmap, image, 0, 0)) {  
+#define P_GOTO(x,y) C = ((union Color*)image->data + y*width + x);
     
     printf("\033[2J\033[H");
     for (int i = 0; i < ynum; i++) {
       printf("\n");
       for (int j = 0; j < xnum; j++) {
-        C = ((union Color*)image->data + i*ystep*width + j*xstep);
+        P_GOTO(j*xstep, i*ystep);
         printf("\x1b[48;2;%d;%d;%dm  \x1b[m", C->r, C->g, C->b);
       }
     }
     
-    usleep(50000);
+    usleep(100000);
   }
 
   return 0;
